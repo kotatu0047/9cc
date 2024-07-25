@@ -1,5 +1,11 @@
 {
     "files.associations": {
-        "stdlib.h": "c"
-    }
+        "stdlib.h": "c",
+        "9cc.h": "c",
+        "stdio.h": "c",
+        "string.h": "c"
+    },
+    "[makefile]": {
+        "editor.insertSpaces": false
+    },
 }
