@@ -4,28 +4,58 @@
 #include <stdlib.h>
 #include "./9cc.h"
 
+static bool at_eof()
+{
+  return g_token->kind == TK_EOF;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(char *op)
+static void expect(char *op)
 {
-  if (token->kind != TK_RESERVED ||
-      strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
+  if (g_token->kind != TK_RESERVED ||
+      strlen(op) != g_token->len ||
+      memcmp(g_token->str, op, g_token->len))
   {
-    error_at(token->str, "'%s'ではありません", op);
+    error_at(g_token->str, "'%s'ではありません", op);
   }
-  token = token->next;
+  g_token = g_token->next;
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number()
+static int expect_number()
 {
-  if (token->kind != TK_NUM)
-    error_at(token->str, "数ではありません");
-  int val = token->val;
-  token = token->next;
+  if (g_token->kind != TK_NUM)
+    error_at(g_token->str, "数ではありません");
+  int val = g_token->val;
+  g_token = g_token->next;
   return val;
+}
+
+// 次のトークンが変数の場合、トークンを1つ読み進める。
+// それ以外の場合にはエラーを報告する。
+static Token *consume_ident()
+{
+  if (g_token->kind != TK_IDENT)
+    error_at(g_token->str, "変数ではありません");
+  Token *token = g_token;
+  g_token = g_token->next;
+  return token;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
+// 真を返す。それ以外の場合には偽を返す。
+static bool consume(char *op)
+{
+  if (g_token->kind != TK_RESERVED ||
+      strlen(op) != g_token->len ||
+      memcmp(g_token->str, op, g_token->len))
+  {
+    return false;
+  }
+  g_token = g_token->next;
+  return true;
 }
 
 Node *new_node(NodeKind kind)
@@ -43,28 +73,24 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs)
   return node;
 }
 
-Node *new_node_num(int val)
+static Node *new_node_num(int val)
 {
   Node *node = new_node(ND_NUM);
   node->val = val;
   return node;
 }
 
-// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op)
+static Node *new_node_ident(Token *tok)
 {
-  if (token->kind != TK_RESERVED ||
-      strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
-  {
-    return false;
-  }
-  token = token->next;
-  return true;
+  Node *node = (Node *)calloc(1, sizeof(Node));
+  node->kind = ND_LVAR;
+  node->offset = (tok->str[0] - 'a' + 1) * 8;
+  return node;
 }
 
-Node *primary()
+static Node *expr();
+
+static Node *primary()
 {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("("))
@@ -74,11 +100,25 @@ Node *primary()
     return node;
   }
 
-  // そうでなければ数値のはず
-  return new_node_num(expect_number());
+  // そうでなければ数値か変数のはず
+  if (g_token->kind == TK_NUM)
+  {
+    return new_node_num(expect_number());
+  }
+  else if (g_token->kind == TK_IDENT)
+  {
+    Token *tok = consume_ident();
+    if (tok)
+    {
+      return new_node_ident(tok);
+    }
+  }
+
+  // 数値か変数でなければエラー
+  error_at(g_token->str, "数値か変数である必要があります");
 }
 
-Node *unary()
+static Node *unary()
 {
   if (consume("+"))
     return unary();
@@ -87,7 +127,7 @@ Node *unary()
   return primary();
 }
 
-Node *mul()
+static Node *mul()
 {
   Node *node = unary();
 
@@ -102,7 +142,7 @@ Node *mul()
   }
 }
 
-Node *add()
+static Node *add()
 {
   Node *node = mul();
 
@@ -117,7 +157,7 @@ Node *add()
   }
 }
 
-Node *relational()
+static Node *relational()
 {
   Node *node = add();
 
@@ -136,7 +176,7 @@ Node *relational()
   }
 }
 
-Node *equality()
+static Node *equality()
 {
   Node *node = relational();
 
@@ -151,7 +191,37 @@ Node *equality()
   }
 }
 
-Node *expr()
+static Node *assign()
 {
-  return equality();
+  Node *node = equality();
+  if (consume("="))
+  {
+    node = new_binary(ND_ASSIGN, node, assign());
+  }
+  return node;
+}
+
+static Node *expr()
+{
+  return assign();
+}
+
+static Node *stmt()
+{
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
+Node *program()
+{
+  Node head = {};
+  Node *cur = &head;
+
+  while (!at_eof())
+  {
+    cur->next = stmt();
+    cur = cur->next;
+  }
+  return head.next;
 }

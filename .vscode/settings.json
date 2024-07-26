@@ -3,7 +3,8 @@
         "stdlib.h": "c",
         "9cc.h": "c",
         "stdio.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "cookie_io_functions_t.h": "c"
     },
     "[makefile]": {
         "editor.insertSpaces": false

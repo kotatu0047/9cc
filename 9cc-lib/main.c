@@ -2,18 +2,14 @@
 #include <string.h>
 #include "./9cc.h"
 
-// bool at_eof()
-// {
-//   return token->kind == TK_EOF;
-// }
-
-//グローバル変数の初期化-----------------------------
-// 入力プログラム
+// グローバル変数の初期化-----------------------------
+//  入力プログラム
 char *g_user_input = NULL;
 // 現在着目しているトークン
-Token *token = NULL;
-//----------------------------------------
+Token *g_token = NULL;
 
+// Node *g_code[100];
+//----------------------------------------
 
 int main(int argc, char **argv)
 {
@@ -25,11 +21,12 @@ int main(int argc, char **argv)
 
   // トークナイズしてパースする
   g_user_input = argv[1];
-  token = tokenize(g_user_input);
-  Node *node = expr();
+  g_token = tokenize(g_user_input);
 
+  // 抽象構文木を作成
+  Node *node = program();
   // 抽象構文木を下りながらコード生成
-  codeGen(node);
+  codegen(node);
 
   return 0;
 }
