@@ -1,3 +1,10 @@
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 // トークンの種類
 typedef enum
 {
@@ -13,24 +20,36 @@ struct Token
 {
   TokenKind kind;
   Token *next;
-  int val;
+  long val;
   char *str;
   int len;
 };
 
+typedef struct LVar LVar;
+
+// ローカル変数の型
+struct LVar
+{
+  LVar *next; // 次の変数かNULL
+  char *name; // 変数の名前
+  int offset; // RBPからのオフセット
+};
+
 typedef enum
 {
-  ND_EQ,     // ==
-  ND_NE,     // !=
-  ND_LT,     // <
-  ND_LE,     // <=
-  ND_ADD,    // +
-  ND_SUB,    // -
-  ND_MUL,    // *
-  ND_DIV,    // /
-  ND_ASSIGN, // =
-  ND_LVAR,   // ローカル変数
-  ND_NUM,    // 整数
+  ND_ADD,       // +
+  ND_SUB,       // -
+  ND_MUL,       // *
+  ND_DIV,       // /
+  ND_EQ,        // ==
+  ND_NE,        // !=
+  ND_LT,        // <
+  ND_LE,        // <=
+  ND_ASSIGN,    // =
+  ND_RETURN,    // "return"
+  ND_EXPR_STMT, // Expression statement
+  ND_LVAR, // ローカル変数
+  ND_NUM,  // 整数
 } NodeKind;
 
 typedef struct Node Node;
@@ -41,18 +60,30 @@ struct Node
   Node *next; // Next node
   Node *lhs;
   Node *rhs;
-  int val;
-  int offset;
+  LVar *var; // Used if kind == ND_VAR
+  long val;
+  // int offset;
 };
 
+typedef struct Function Function;
+struct Function
+{
+  Node *node;
+  LVar *locals;
+  int stack_size;
+};
+
+// エラー箇所を報告する
 void error(char *fmt, ...);
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...);
+
+// トークナイズ
 Token *tokenize(char *p);
-
-Node *program(void);
-
-void codegen(Node *node);
+// パース
+Function *program();
+// アセンブリを生成
+void codegen(Function *node);
 
 // グローバル変数-----------------------------
 //  入力プログラム
@@ -60,5 +91,6 @@ extern char *g_user_input;
 // 現在着目しているトークン
 extern Token *g_token;
 
-// extern Node *g_code[100];
+// ローカル変数
+extern LVar *g_locals;
 //----------------------------------------

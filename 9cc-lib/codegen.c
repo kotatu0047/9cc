@@ -1,40 +1,56 @@
-#include <stdio.h>
 #include "./9cc.h"
 
-void gen_lval(Node *node)
+// スタックフレームの変数領域のアドレスを読み込み、スタックの先頭に配置する
+static void gen_lval(Node *node)
 {
   if (node->kind != ND_LVAR)
   {
     error("代入の左辺値が変数ではありません");
   }
 
-  printf("  move rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
+  printf("  lea rax, [rbp-%d]\n", node->var->offset);
   printf("  push rax\n");
 }
 
-void gen(Node *node)
+static void load(void)
+{
+  printf("  pop rax\n");
+  printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
+}
+
+static void store(void)
+{
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  mov [rax], rdi\n");
+  printf("  push rdi\n");
+}
+
+static void gen(Node *node)
 {
   switch (node->kind)
   {
-
   case ND_NUM:
-    printf("  push %d\n", node->val);
+    printf("  push %ld\n", node->val);
+    return;
+  case ND_EXPR_STMT:
+    gen(node->lhs);
+    printf("  add rsp, 8\n"); // 代入が完了したら、スタックの先頭にある計算結果を捨てる
     return;
   case ND_LVAR:
     gen_lval(node);
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    load();
     return;
   case ND_ASSIGN:
     gen_lval(node->lhs);
     gen(node->rhs);
-
-    printf("  pop rdi\n");
+    store();
+    return;
+  case ND_RETURN:
+    gen(node->lhs);
     printf("  pop rax\n");
-    printf("  mov [rax], rdi\n");
-    printf("  push rdi\n");
+    printf("  jmp .L.return\n");
     return;
   default:
     break;
@@ -86,7 +102,7 @@ void gen(Node *node)
   printf("  push rax\n");
 }
 
-void codegen(Node *node)
+void codegen(Function *prog)
 {
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
@@ -94,22 +110,20 @@ void codegen(Node *node)
   printf("main:\n");
 
   // プロローグ
-  // 変数26個分の領域を確保する
+  // 変数の数分の領域を確保する
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");
+  printf("  sub rsp, %d\n", prog->stack_size);
 
   // 先頭の式から順にコード生成
-  for (Node *n = node; n; n = n->next)
+  for (Node *n = prog->node; n; n = n->next)
   {
     gen(n);
-    // 式の評価結果としてスタックに一つの値が残っている
-    // はずなので、スタックが溢れないようにポップしておく
-    printf("  pop rax\n");
   }
 
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値になる
+  printf(".L.return:\n");
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
   printf("  ret\n");

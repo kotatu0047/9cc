@@ -4,7 +4,9 @@
         "9cc.h": "c",
         "stdio.h": "c",
         "string.h": "c",
-        "cookie_io_functions_t.h": "c"
+        "cookie_io_functions_t.h": "c",
+        "ctype.h": "c",
+        "stdarg.h": "c"
     },
     "[makefile]": {
         "editor.insertSpaces": false
