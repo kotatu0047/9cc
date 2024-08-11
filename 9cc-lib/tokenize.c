@@ -27,6 +27,35 @@ static bool is_alnum(char c)
   return is_alpha(c) || ('0' <= c && c <= '9');
 }
 
+// 入力文字列pが予約語であるかを調べる
+// 予約語でない場合はNULLを返す
+static char *starts_with_reserved(char *p)
+{
+  // Keywords
+  static char *kw[] = {"return", "if", "else"};
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+  {
+    int len = strlen(kw[i]);
+    if (start_str_with(p, kw[i]) && !is_alnum(p[len]))
+    {
+      return kw[i];
+    }
+  }
+
+  // 比較演算子
+  static char *ops[] = {"==", "!=", "<=", ">="};
+  for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++)
+  {
+    int len = strlen(ops[i]);
+    if (start_str_with(p, ops[i]))
+    {
+      return ops[i];
+    }
+  }
+
+  return NULL;
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p)
 {
@@ -43,11 +72,12 @@ Token *tokenize(char *p)
       continue;
     }
 
-    // Keywords
-    if (start_str_with(p, "return") && !is_alnum(p[6]))
+    char *kw = starts_with_reserved(p);
+    if (kw)
     {
-      cur = new_token(TK_RESERVED, cur, p, 6);
-      p += 6;
+      int len = strlen(kw);
+      cur = new_token(TK_RESERVED, cur, p, len);
+      p += len;
       continue;
     }
 
@@ -58,14 +88,6 @@ Token *tokenize(char *p)
       while (is_alnum(*p))
         p++;
       cur = new_token(TK_IDENT, cur, q, p - q);
-      continue;
-    }
-
-    if (start_str_with(p, "==") || start_str_with(p, "!=") ||
-        start_str_with(p, "<=") || start_str_with(p, ">="))
-    {
-      cur = new_token(TK_RESERVED, cur, p, 2);
-      p += 2;
       continue;
     }
 

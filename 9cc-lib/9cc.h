@@ -47,6 +47,7 @@ typedef enum
   ND_LE,        // <=
   ND_ASSIGN,    // =
   ND_RETURN,    // "return"
+  ND_IF,        // "if"
   ND_EXPR_STMT, // Expression statement
   ND_LVAR, // ローカル変数
   ND_NUM,  // 整数
@@ -60,6 +61,12 @@ struct Node
   Node *next; // Next node
   Node *lhs;
   Node *rhs;
+  
+  // "if" statement
+  Node *cond;
+  Node *then;
+  Node *els;
+
   LVar *var; // Used if kind == ND_VAR
   long val;
   // int offset;
