@@ -126,6 +126,11 @@ static Node *mul();
 static Node *unary();
 static Node *primary();
 
+static Node *read_expr_stmt()
+{
+  return new_unary(ND_EXPR_STMT, expr());
+}
+
 Function *program()
 {
   g_locals = NULL;
@@ -148,6 +153,7 @@ Function *program()
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "while" "(" expr ")" stmt
+//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | expr ";"
 static Node *stmt()
 {
@@ -185,7 +191,31 @@ static Node *stmt()
     return node;
   }
 
-  Node *node = new_unary(ND_EXPR_STMT, expr());
+  if (consume("for"))
+  {
+    Node *node = new_node(ND_FOR);
+    expect("(");
+    if (!consume(";"))
+    {
+      node->init = read_expr_stmt();
+      expect(";");
+    }
+    if (!consume(";"))
+    {
+      node->cond = expr();
+      expect(";");
+    }
+    if (!consume(")"))
+    {
+      node->inc = read_expr_stmt();
+      expect(")");
+    }
+    node->then = stmt();
+    node->els = NULL;
+    return node;
+  }
+
+  Node *node = read_expr_stmt();
   expect(";");
   return node;
 }

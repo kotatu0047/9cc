@@ -49,6 +49,7 @@ typedef enum
   ND_RETURN,    // "return"
   ND_IF,        // "if"
   ND_WHILE,     // "while"
+  ND_FOR,       // "for"
   ND_EXPR_STMT, // Expression statement
   ND_LVAR, // ローカル変数
   ND_NUM,  // 整数
@@ -63,10 +64,12 @@ struct Node
   Node *lhs;
   Node *rhs;
   
-  // "if" or "while" statement
+  // "if, "while" or "for" statement
   Node *cond;
   Node *then;
   Node *els;
+  Node *init;
+  Node *inc;
 
   LVar *var; // Used if kind == ND_VAR
   long val;
