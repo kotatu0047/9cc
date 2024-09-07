@@ -1,7 +1,8 @@
 #include "./9cc.h"
 
-static int labelseq = 1;
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static int labelseq = 1;
+static char *currnet_funcname;
 
 // スタックフレームの変数領域のアドレスを読み込み、スタックの先頭に配置する
 static void gen_lval(Node *node)
@@ -133,7 +134,7 @@ static void gen(Node *node)
     // 可変長関数の場合、RAX は 0 に設定されます。
     int seq = labelseq++;
     printf("  mov rax, rsp\n");
-    printf("  and rax, 15\n");   // 下位4ビットを取り出す
+    printf("  and rax, 15\n"); // 下位4ビットを取り出す
     printf("  jnz .L.call.%d\n", seq);
     printf("  mov rax, 0\n");
     printf("  call %s\n", node->funcname);
@@ -150,7 +151,7 @@ static void gen(Node *node)
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  jmp .L.return\n");
+    printf("  jmp .L.return.%s\n", currnet_funcname);
     return;
   default:
     break;
@@ -206,25 +207,58 @@ void codegen(Function *prog)
 {
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
 
-  // プロローグ
-  // 変数の数分の領域を確保する
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %d\n", prog->stack_size);
-
-  // 先頭の式から順にコード生成
-  for (Node *n = prog->node; n; n = n->next)
+  for (Function *fn = prog; fn; fn = fn->next)
   {
-    gen(n);
+    printf(".globl %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    currnet_funcname = fn->name;
+
+    // プロローグ
+    // ベースポインタを退避し、変数の数分の領域を確保する
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", fn->stack_size);
+
+    /// // 引数をスタックに積む
+    // int i = 0;
+    // for (LVar *var = fn->locals; var; var = var->next)
+    // {
+    //   printf("  mov [rbp-%d], %s\n", var->offset, argreg[i++]);
+    // }
+
+    for (Node *node = fn->node; node; node = node->next)
+    {
+      gen(node);
+    }
+
+    // エピローグ
+    // 最後の式の結果がRAXに残っているのでそれが返り値になる
+    printf(".L.return.%s:\n", currnet_funcname);
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
   }
 
-  // エピローグ
-  // 最後の式の結果がRAXに残っているのでそれが返り値になる
-  printf(".L.return:\n");
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+  // printf(".globl main\n");
+  // printf("main:\n");
+
+  // // プロローグ
+  // // 変数の数分の領域を確保する
+  // printf("  push rbp\n");
+  // printf("  mov rbp, rsp\n");
+  // printf("  sub rsp, %d\n", prog->stack_size);
+
+  // // 先頭の式から順にコード生成
+  // for (Node *n = prog->node; n; n = n->next)
+  // {
+  //   gen(n);
+  // }
+
+  // // エピローグ
+  // // 最後の式の結果がRAXに残っているのでそれが返り値になる
+  // printf(".L.return.%s:\n", currnet_funcname);
+  // printf("  mov rsp, rbp\n");
+  // printf("  pop rbp\n");
+  // printf("  ret\n");
 }

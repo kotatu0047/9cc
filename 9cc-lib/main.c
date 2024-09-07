@@ -5,7 +5,7 @@
 char *g_user_input = NULL;
 // 現在着目しているトークン
 Token *g_token = NULL;
-//ローカル変数
+// ローカル変数
 LVar *g_locals = NULL;
 //----------------------------------------
 
@@ -22,16 +22,19 @@ int main(int argc, char **argv)
   g_token = tokenize(g_user_input);
 
   // 抽象構文木を作成
-  // Node *node = program();
   Function *prog = program();
 
   // Assign offsets to local variables.
-  int offset = 0;
-  for (LVar *var = prog->locals; var; var = var->next) {
-    offset += 8;
-    var->offset = offset;
+  for (Function *fn = prog; fn; fn = fn->next)
+  {
+    int offset = 0;
+    for (LVar *var = prog->locals; var; var = var->next)
+    {
+      offset += 8;
+      var->offset = offset;
+    }
+    fn->stack_size = offset;
   }
-  prog->stack_size = offset;
 
   // 抽象構文木を下りながらコード生成
   codegen(prog);

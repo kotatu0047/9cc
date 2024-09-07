@@ -49,6 +49,16 @@ static long expect_number()
   return val;
 }
 
+// 現在のトークンが TK_IDENT であることを確認します。
+char *expect_ident()
+{
+  if (g_token->kind != TK_IDENT)
+    error_at(g_token->str, "識別子ではありません");
+  char *name = strndup(g_token->str, g_token->len);
+  g_token = g_token->next;
+  return name;
+}
+
 static bool at_eof()
 {
   return g_token->kind == TK_EOF;
@@ -116,6 +126,7 @@ static LVar *new_lvar(char *name)
   return var;
 }
 
+static Function *function();
 static Node *stmt();
 static Node *expr();
 static Node *assign();
@@ -131,23 +142,44 @@ static Node *read_expr_stmt()
   return new_unary(ND_EXPR_STMT, expr());
 }
 
+// program = function*
 Function *program()
+{
+  Function head = {};
+  Function *cur = &head;
+
+  while (!at_eof())
+  {
+    cur->next = function();
+    cur = cur->next;
+  }
+
+  return head.next;
+}
+
+// function = ident "(" ")" "{" stmt* "}"
+static Function *function()
 {
   g_locals = NULL;
 
+  char *name = expect_ident();
+  expect("(");
+  expect(")");
+  expect("{");
+
   Node head = {};
   Node *cur = &head;
-
-  while (!at_eof())
+  while (!consume("}"))
   {
     cur->next = stmt();
     cur = cur->next;
   }
 
-  Function *prog = (Function *)calloc(1, sizeof(Function));
-  prog->node = head.next;
-  prog->locals = g_locals;
-  return prog;
+  Function *fn = (Function *)calloc(1, sizeof(Function));
+  fn->name = name;
+  fn->node = head.next;
+  fn->locals = g_locals;
+  return fn;
 }
 
 // stmt = "return" expr ";"
