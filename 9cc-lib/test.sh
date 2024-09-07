@@ -84,9 +84,9 @@ assert 7 'if (0) {return 2;} else {foo123= 3 - 1 ; bar=5; return foo123+bar;}'
 assert 3 'return ret3();'
 assert 5 'return ret5();'
 
-assert 8 'return add(3, 5);'
-assert 2 'return sub(5, 3);'
 assert 21 'return add6(1,2,3,4,5,6);'
 assert 1 'return add(3 == 3, 2 == 4);'
+assert 2 'return sub(5, 3);'
+assert 8 'return add(3, 5);'
 
 echo OK

@@ -129,7 +129,21 @@ static void gen(Node *node)
       printf("  pop %s\n", argreg[i]);
     }
 
+    // ABI の要件であるため、関数を呼び出す前に RSP を 16 バイト境界に揃える必要があります。
+    // 可変長関数の場合、RAX は 0 に設定されます。
+    int seq = labelseq++;
+    printf("  mov rax, rsp\n");
+    printf("  and rax, 15\n");   // 下位4ビットを取り出す
+    printf("  jnz .L.call.%d\n", seq);
+    printf("  mov rax, 0\n");
     printf("  call %s\n", node->funcname);
+    printf("  jmp .L.end.%d\n", seq);
+    printf(".L.call.%d:\n", seq);
+    printf("  sub rsp, 8\n");
+    printf("  mov rax, 0\n");
+    printf("  call %s\n", node->funcname);
+    printf("  add rsp, 8\n");
+    printf(".L.end.%d:\n", seq);
     printf("  push rax\n");
     return;
   }
