@@ -324,6 +324,8 @@ static Node *unary()
   return primary();
 }
 
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 static Node *primary()
 {
   // 次のトークンが"("なら、"(" expr ")"のはず
@@ -334,10 +336,20 @@ static Node *primary()
     return node;
   }
 
-  // そうでなければ数値か変数のはず
+  // そうでなければ数値か変数か関数のはず
   Token *tok = consume_ident();
   if (tok)
   {
+    // Function call
+    if (consume("("))
+    {
+      expect(")");
+      Node *node = new_node(ND_FUNCALL);
+      node->funcname = strndup(tok->str, tok->len);
+      return node;
+    }
+
+    // 変数
     LVar *var = find_var(tok);
     if (!var)
     {

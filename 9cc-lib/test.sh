@@ -1,10 +1,17 @@
 #!/bin/bash
+
+#!/bin/bash
+cat <<EOF | g++ -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+EOF
+
 assert() {
   expected="$1"
   input="$2"
 
   ./9cc "$input" >tmp.s
-  g++ -static -o tmp tmp.s
+  g++ -static -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"
 
@@ -67,5 +74,7 @@ assert 55 'i=0; j=0; while(i<=10) {j=i+j; i=i+1;} return j;'
 assert 3 'for (;;) return 3; return 5;'
 assert 7 'if (0) {return 2;} else {foo123= 3 - 1 ; bar=5; return foo123+bar;}'
 
+assert 3 'return ret3();'
+assert 5 'return ret5();'
 
 echo OK

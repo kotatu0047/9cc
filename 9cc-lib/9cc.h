@@ -51,6 +51,7 @@ typedef enum
   ND_WHILE,     // "while"
   ND_FOR,       // "for"
   ND_BLOCK,     // { ... }
+  ND_FUNCALL,   // Function call
   ND_EXPR_STMT, // Expression statement
   ND_LVAR, // ローカル変数
   ND_NUM,  // 整数
@@ -74,6 +75,9 @@ struct Node
 
   // Block
   Node *body;
+
+  // Function call
+  char *funcname;
 
   LVar *var; // Used if kind == ND_VAR
   long val;
