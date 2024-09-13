@@ -220,12 +220,13 @@ void codegen(Function *prog)
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, %d\n", fn->stack_size);
 
-    /// // 引数をスタックに積む
-    // int i = 0;
-    // for (LVar *var = fn->locals; var; var = var->next)
-    // {
-    //   printf("  mov [rbp-%d], %s\n", var->offset, argreg[i++]);
-    // }
+    // 引数をスタックに積む
+    int i = 0;
+    for (LVarList *vl = fn->params; vl; vl = vl->next)
+    {
+      LVar *var = vl->var;
+      printf("  mov [rbp-%d], %s\n", var->offset, argreg[i++]);
+    }
 
     for (Node *node = fn->node; node; node = node->next)
     {
@@ -239,26 +240,4 @@ void codegen(Function *prog)
     printf("  pop rbp\n");
     printf("  ret\n");
   }
-
-  // printf(".globl main\n");
-  // printf("main:\n");
-
-  // // プロローグ
-  // // 変数の数分の領域を確保する
-  // printf("  push rbp\n");
-  // printf("  mov rbp, rsp\n");
-  // printf("  sub rsp, %d\n", prog->stack_size);
-
-  // // 先頭の式から順にコード生成
-  // for (Node *n = prog->node; n; n = n->next)
-  // {
-  //   gen(n);
-  // }
-
-  // // エピローグ
-  // // 最後の式の結果がRAXに残っているのでそれが返り値になる
-  // printf(".L.return.%s:\n", currnet_funcname);
-  // printf("  mov rsp, rbp\n");
-  // printf("  pop rbp\n");
-  // printf("  ret\n");
 }

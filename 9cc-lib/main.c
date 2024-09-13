@@ -6,7 +6,7 @@ char *g_user_input = NULL;
 // 現在着目しているトークン
 Token *g_token = NULL;
 // ローカル変数
-LVar *g_locals = NULL;
+// LVar *g_locals = NULL;
 //----------------------------------------
 
 int main(int argc, char **argv)
@@ -28,10 +28,10 @@ int main(int argc, char **argv)
   for (Function *fn = prog; fn; fn = fn->next)
   {
     int offset = 0;
-    for (LVar *var = prog->locals; var; var = var->next)
+    for (LVarList *vl = fn->locals; vl; vl = vl->next)
     {
       offset += 8;
-      var->offset = offset;
+      vl->var->offset = offset;
     }
     fn->stack_size = offset;
   }

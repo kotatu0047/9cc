@@ -26,13 +26,17 @@ struct Token
 };
 
 typedef struct LVar LVar;
-
 // ローカル変数の型
 struct LVar
 {
-  LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
   int offset; // RBPからのオフセット
+};
+typedef struct LVarList LVarList;
+struct  LVarList
+{
+  LVarList *next;
+  LVar *var;
 };
 
 typedef enum
@@ -90,8 +94,9 @@ struct Function
 {
   Function *next;
   char *name;
+  LVarList *params;
   Node *node;
-  LVar *locals;
+  LVarList *locals;
   int stack_size;
 };
 
@@ -114,5 +119,5 @@ extern char *g_user_input;
 extern Token *g_token;
 
 // ローカル変数
-extern LVar *g_locals;
+// extern LVar *g_locals;
 //----------------------------------------

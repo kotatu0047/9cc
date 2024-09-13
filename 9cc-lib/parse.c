@@ -1,5 +1,21 @@
 #include "./9cc.h"
 
+// 解析中に作成されたすべてのローカル変数インスタンスは
+// このリストに蓄積されます。
+static LVarList *locals;
+
+// Find a local variable by name.
+static LVar *find_var(Token *tok)
+{
+  for (LVarList *vl = locals; vl; vl = vl->next)
+  {
+    LVar *var = vl->var;
+    if (strlen(var->name) == tok->len && !strncmp(tok->str, var->name, tok->len))
+      return var;
+  }
+  return NULL;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 static bool consume(char *op)
@@ -64,15 +80,6 @@ static bool at_eof()
   return g_token->kind == TK_EOF;
 }
 
-// Find a local variable by name.
-static LVar *find_var(Token *tok)
-{
-  for (LVar *var = g_locals; var; var = var->next)
-    if (strlen(var->name) == tok->len && !strncmp(tok->str, var->name, tok->len))
-      return var;
-  return NULL;
-}
-
 static Node *new_node(NodeKind kind)
 {
   Node *node = (Node *)calloc(1, sizeof(Node));
@@ -120,9 +127,12 @@ static Node *new_var_node(LVar *var)
 static LVar *new_lvar(char *name)
 {
   LVar *var = (LVar *)calloc(1, sizeof(LVar));
-  var->next = g_locals;
   var->name = name;
-  g_locals = var;
+
+  LVarList *vl = (LVarList *)calloc(1, sizeof(LVarList));
+  vl->var = var;
+  vl->next = locals;
+  locals = vl;
   return var;
 }
 
@@ -157,14 +167,35 @@ Function *program()
   return head.next;
 }
 
-// function = ident "(" ")" "{" stmt* "}"
+static LVarList *read_func_params()
+{
+  if (consume(")"))
+    return NULL;
+
+  LVarList *head = (LVarList *)calloc(1, sizeof(LVarList));
+  head->var = new_lvar(expect_ident());
+  LVarList *cur = head;
+
+  while (!consume(")"))
+  {
+    expect(",");
+    cur->next = (LVarList *)calloc(1, sizeof(LVarList));
+    cur->next->var = new_lvar(expect_ident());
+    cur = cur->next;
+  }
+
+  return head;
+}
+
+// function = ident "(" params? ")" "{" stmt* "}"
+// params = ident ("," ident)* 
 static Function *function()
 {
-  g_locals = NULL;
-
-  char *name = expect_ident();
+  locals = NULL;
+  Function *fn = (Function *)calloc(1, sizeof(Function));
+  fn->name = expect_ident();
   expect("(");
-  expect(")");
+  fn->params = read_func_params();
   expect("{");
 
   Node head = {};
@@ -175,10 +206,8 @@ static Function *function()
     cur = cur->next;
   }
 
-  Function *fn = (Function *)calloc(1, sizeof(Function));
-  fn->name = name;
   fn->node = head.next;
-  fn->locals = g_locals;
+  fn->locals = locals;
   return fn;
 }
 
