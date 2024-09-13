@@ -17,7 +17,8 @@
         "ostream": "c",
         "stdexcept": "c",
         "streambuf": "c",
-        "functional": "c"
+        "functional": "c",
+        "type_traits": "c"
     },
     "[makefile]": {
         "editor.insertSpaces": false

@@ -140,6 +140,7 @@ static LVar *new_lvar(char *name)
 
 static Function *function();
 static Node *stmt();
+static Node *stmt2();
 static Node *expr();
 static Node *assign();
 static Node *equality();
@@ -214,13 +215,20 @@ static Function *function()
   return fn;
 }
 
+static Node *stmt()
+{
+  Node *node = stmt2();
+  add_type(node);
+  return node;
+}
+
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "{" stmt* "}"
 //      | expr ";"
-static Node *stmt()
+static Node *stmt2()
 {
   Token *tok;
 
@@ -269,7 +277,7 @@ static Node *stmt()
     }
     if (!consume(";"))
     {
-      node->cond = expr();// expr = assign
+      node->cond = expr(); // expr = assign
 
       expect(";");
     }
@@ -359,6 +367,36 @@ static Node *relational()
   }
 }
 
+static Node *new_add(Node *lhs, Node *rhs, Token *tok)
+{
+  add_type(lhs);
+  add_type(rhs);
+
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_binary(ND_ADD, lhs, rhs, tok);
+  if (lhs->ty->base && is_integer(rhs->ty))
+    return new_binary(ND_PTR_ADD, lhs, rhs, tok);
+  if (is_integer(lhs->ty) && rhs->ty->base)
+    return new_binary(ND_PTR_ADD, rhs, lhs, tok);
+
+  error_tok(tok, "invalid operands");
+}
+
+static Node *new_sub(Node *lhs, Node *rhs, Token *tok)
+{
+  add_type(lhs);
+  add_type(rhs);
+
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_binary(ND_SUB, lhs, rhs, tok);
+  if (lhs->ty->base && is_integer(rhs->ty))
+    return new_binary(ND_PTR_SUB, lhs, rhs, tok);
+  if (lhs->ty->base && rhs->ty->base)
+    return new_binary(ND_PTR_DIFF, lhs, rhs, tok);
+
+  error_tok(tok, "invalid operands");
+}
+
 // add = mul ("+" mul | "-" mul)*
 static Node *add()
 {
@@ -368,9 +406,9 @@ static Node *add()
   for (;;)
   {
     if (tok = consume("+"))
-      node = new_binary(ND_ADD, node, mul(), tok);
+      node = new_add(node, mul(), tok);
     else if (tok = consume("-"))
-      node = new_binary(ND_SUB, node, mul(), tok);
+      node = new_sub(node, mul(), tok);
     else
       return node;
   }

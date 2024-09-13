@@ -46,7 +46,7 @@ typedef enum
   ND_ADD,       // num + num
   ND_PTR_ADD,   // ptr + num or num + ptr
   ND_SUB,       // num - num
-  ND_PTR_SUM,   // ptr - num
+  ND_PTR_SUB,   // ptr - num
   ND_PTR_DIFF,  // ptr - ptr
   ND_MUL,       // *
   ND_DIV,       // /
@@ -134,7 +134,9 @@ struct Type
   Type *base;
 };
 
+//tyが整数型かどうかを返す
 bool is_integer(Type *ty);
+// nodeとnode以下の全子要素に型を付与する
 void add_type(Node *node);
 //----------------------------------------
 
