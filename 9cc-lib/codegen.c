@@ -7,13 +7,13 @@ static char *currnet_funcname;
 // スタックフレームの変数領域のアドレスを読み込み、スタックの先頭に配置する
 static void gen_lval(Node *node)
 {
-  if (node->kind != ND_LVAR)
-  {
-    error("代入の左辺値が変数ではありません");
+  if (node->kind == ND_LVAR) {
+    printf("  lea rax, [rbp-%d]\n", node->var->offset);
+    printf("  push rax\n");
+    return;
   }
 
-  printf("  lea rax, [rbp-%d]\n", node->var->offset);
-  printf("  push rax\n");
+  error_tok(node->tok, "not an lvalue");
 }
 
 static void load(void)

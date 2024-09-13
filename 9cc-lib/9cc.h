@@ -67,6 +67,7 @@ struct Node
 {
   NodeKind kind;
   Node *next; // Next node
+  Token *tok;  // Representative token
   Node *lhs;
   Node *rhs;
   
@@ -104,6 +105,7 @@ struct Function
 void error(char *fmt, ...);
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...);
+void error_tok(Token *tok, char *fmt, ...);
 
 // トークナイズ
 Token *tokenize(char *p);

@@ -10,22 +10,30 @@ void error(char *fmt, ...) {
 }
 
 // エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...)
+static void error_at(char *loc, char *fmt, va_list ap)
 {
-  va_list ap;
-  va_start(ap, fmt);
-
-  fprintf(stderr, "loc is %p\n", loc);
-  fprintf(stderr, "user_input is %p\n", g_user_input);
-
   int pos = loc - g_user_input;
-
-  fprintf(stderr, "pos is %d\n", pos);
-
   fprintf(stderr, "%s\n", g_user_input);
   fprintf(stderr, "%*s", pos, " "); // pos個の空白を出力
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
+}
+
+// エラー箇所を報告する
+void error_at(char *loc, char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  
+  error_at(loc, fmt, ap);
+}
+
+// エラー箇所を報告する
+void error_tok(Token *tok, char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  error_at(tok->str, fmt, ap);
 }
