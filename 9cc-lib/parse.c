@@ -269,7 +269,8 @@ static Node *stmt()
     }
     if (!consume(";"))
     {
-      node->cond = expr();
+      node->cond = expr();// expr = assign
+
       expect(";");
     }
     if (!consume(")"))
@@ -302,11 +303,13 @@ static Node *stmt()
   return node;
 }
 
+// expr = assign
 static Node *expr()
 {
   return assign();
 }
 
+// assign = equality ("=" assign)?
 static Node *assign()
 {
   Node *node = equality();
@@ -318,6 +321,7 @@ static Node *assign()
   return node;
 }
 
+// equality = relational ("==" relational | "!=" relational)*
 static Node *equality()
 {
   Node *node = relational();
@@ -334,6 +338,7 @@ static Node *equality()
   }
 }
 
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 static Node *relational()
 {
   Node *node = add();
@@ -354,6 +359,7 @@ static Node *relational()
   }
 }
 
+// add = mul ("+" mul | "-" mul)*
 static Node *add()
 {
   Node *node = mul();
@@ -370,6 +376,7 @@ static Node *add()
   }
 }
 
+// mul = unary ("*" unary | "/" unary)*
 static Node *mul()
 {
   Node *node = unary();
@@ -386,6 +393,8 @@ static Node *mul()
   }
 }
 
+// unary = ("+" | "-" | "*" | "&")? unary
+//       | primary
 static Node *unary()
 {
   Token *tok;
@@ -394,6 +403,10 @@ static Node *unary()
     return unary();
   if (tok = consume("-"))
     return new_binary(ND_SUB, new_node_num(0, tok), unary(), tok);
+  if (tok = consume("&"))
+    return new_unary(ND_ADDR, unary(), tok);
+  if (tok = consume("*"))
+    return new_unary(ND_DEREF, unary(), tok);
   return primary();
 }
 

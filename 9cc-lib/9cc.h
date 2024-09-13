@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct Type Type;
+
 // トークンの種類
 typedef enum
 {
@@ -33,7 +35,7 @@ struct LVar
   int offset; // RBPからのオフセット
 };
 typedef struct LVarList LVarList;
-struct  LVarList
+struct LVarList
 {
   LVarList *next;
   LVar *var;
@@ -41,8 +43,11 @@ struct  LVarList
 
 typedef enum
 {
-  ND_ADD,       // +
-  ND_SUB,       // -
+  ND_ADD,       // num + num
+  ND_PTR_ADD,   // ptr + num or num + ptr
+  ND_SUB,       // num - num
+  ND_PTR_SUM,   // ptr - num
+  ND_PTR_DIFF,  // ptr - ptr
   ND_MUL,       // *
   ND_DIV,       // /
   ND_EQ,        // ==
@@ -50,6 +55,8 @@ typedef enum
   ND_LT,        // <
   ND_LE,        // <=
   ND_ASSIGN,    // =
+  ND_ADDR,      // unary &
+  ND_DEREF,     // unary *
   ND_RETURN,    // "return"
   ND_IF,        // "if"
   ND_WHILE,     // "while"
@@ -57,8 +64,8 @@ typedef enum
   ND_BLOCK,     // { ... }
   ND_FUNCALL,   // Function call
   ND_EXPR_STMT, // Expression statement
-  ND_LVAR, // ローカル変数
-  ND_NUM,  // 整数
+  ND_LVAR,      // ローカル変数
+  ND_NUM,       // 整数
 } NodeKind;
 
 typedef struct Node Node;
@@ -67,10 +74,11 @@ struct Node
 {
   NodeKind kind;
   Node *next; // Next node
-  Token *tok;  // Representative token
+  Type *ty;   // Type, e.g. int or pointer to int
+  Token *tok; // Representative token
   Node *lhs;
   Node *rhs;
-  
+
   // "if, "while" or "for" statement
   Node *cond;
   Node *then;
@@ -101,25 +109,62 @@ struct Function
   int stack_size;
 };
 
-// エラー箇所を報告する
-void error(char *fmt, ...);
+//----------------------------------------
+// util.c
+//
+
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);
+//----------------------------------------
+
+//----------------------------------------
+// typing.c
+//
+
+typedef enum
+{
+  TY_INT,
+  TY_PTR
+} TypeKind;
+
+struct Type
+{
+  TypeKind kind;
+  Type *base;
+};
+
+bool is_integer(Type *ty);
+void add_type(Node *node);
+//----------------------------------------
+
+//----------------------------------------
+// tokenize.c
+//
 
 // トークナイズ
 Token *tokenize(char *p);
+//----------------------------------------
+
+//----------------------------------------
+// parse.c
+//
+
 // パース
 Function *program();
+//----------------------------------------
+
+//----------------------------------------
+// codegen.c
+//
+
 // アセンブリを生成
 void codegen(Function *node);
+//----------------------------------------
 
 // グローバル変数-----------------------------
 //  入力プログラム
 extern char *g_user_input;
 // 現在着目しているトークン
 extern Token *g_token;
-
-// ローカル変数
-// extern LVar *g_locals;
 //----------------------------------------

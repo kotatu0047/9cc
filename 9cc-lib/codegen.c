@@ -4,13 +4,22 @@ static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static int labelseq = 1;
 static char *currnet_funcname;
 
+static void gen(Node *node);
+
 // スタックフレームの変数領域のアドレスを読み込み、スタックの先頭に配置する
 static void gen_lval(Node *node)
 {
-  if (node->kind == ND_LVAR) {
+  switch (node->kind)
+  {
+  case ND_LVAR:
     printf("  lea rax, [rbp-%d]\n", node->var->offset);
     printf("  push rax\n");
     return;
+  case ND_DEREF:
+    gen(node->lhs);
+    return;
+  default:
+    break;
   }
 
   error_tok(node->tok, "not an lvalue");
@@ -50,6 +59,13 @@ static void gen(Node *node)
     gen_lval(node->lhs);
     gen(node->rhs);
     store();
+    return;
+  case ND_ADDR:
+    gen_lval(node->lhs);
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    load();
     return;
   case ND_IF:
   {

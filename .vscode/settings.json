@@ -6,7 +6,18 @@
         "string.h": "c",
         "cookie_io_functions_t.h": "c",
         "ctype.h": "c",
-        "stdarg.h": "c"
+        "stdarg.h": "c",
+        "*.tcc": "c",
+        "system_error": "c",
+        "random": "c",
+        "fstream": "c",
+        "istream": "c",
+        "limits": "c",
+        "new": "c",
+        "ostream": "c",
+        "stdexcept": "c",
+        "streambuf": "c",
+        "functional": "c"
     },
     "[makefile]": {
         "editor.insertSpaces": false
