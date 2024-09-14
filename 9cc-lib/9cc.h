@@ -32,6 +32,7 @@ typedef struct LVar LVar;
 struct LVar
 {
   char *name; // 変数の名前
+  Type *ty;   // Type
   int offset; // RBPからのオフセット
 };
 typedef struct LVarList LVarList;
@@ -66,6 +67,7 @@ typedef enum
   ND_EXPR_STMT, // Expression statement
   ND_LVAR,      // ローカル変数
   ND_NUM,       // 整数
+  ND_NULL       // 空の文
 } NodeKind;
 
 typedef struct Node Node;
@@ -136,6 +138,8 @@ struct Type
 
 //tyが整数型かどうかを返す
 bool is_integer(Type *ty);
+// ポインター型に変換する
+Type *pointer_to(Type *base);
 // nodeとnode以下の全子要素に型を付与する
 void add_type(Node *node);
 //----------------------------------------
@@ -169,4 +173,6 @@ void codegen(Function *node);
 extern char *g_user_input;
 // 現在着目しているトークン
 extern Token *g_token;
+// intの型
+extern Type g_int_type;
 //----------------------------------------

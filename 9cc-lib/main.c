@@ -5,8 +5,8 @@
 char *g_user_input = NULL;
 // 現在着目しているトークン
 Token *g_token = NULL;
-// ローカル変数
-// LVar *g_locals = NULL;
+// intの型
+Type g_int_type = {TY_INT, NULL};
 //----------------------------------------
 
 int main(int argc, char **argv)

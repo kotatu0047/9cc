@@ -31,6 +31,18 @@ static Token *consume(char *op)
   return t;
 }
 
+// 現在のトークンが指定された文字列と一致する場合は現在のトークンを返します。
+Token *peek(char *s)
+{
+  if (g_token->kind != TK_RESERVED ||
+      strlen(s) != g_token->len ||
+      strncmp(g_token->str, s, g_token->len))
+  {
+    return NULL;
+  }
+  return g_token;
+}
+
 // 次のトークンが変数の場合、トークンを1つ読み進める。
 // それ以外の場合にはNULLを返す
 static Token *consume_ident(void)
@@ -46,9 +58,7 @@ static Token *consume_ident(void)
 // それ以外の場合にはエラーを報告する。
 static void expect(char *op)
 {
-  if (g_token->kind != TK_RESERVED ||
-      strlen(op) != g_token->len ||
-      strncmp(g_token->str, op, g_token->len))
+  if (!peek(op))
   {
     error_tok(g_token, "'%s'ではありません", op);
   }
@@ -126,10 +136,11 @@ static Node *new_var_node(LVar *var, Token *tok)
 //   return node;
 // }
 
-static LVar *new_lvar(char *name)
+static LVar *new_lvar(char *name, Type *ty)
 {
   LVar *var = (LVar *)calloc(1, sizeof(LVar));
   var->name = name;
+  var->ty = ty;
 
   LVarList *vl = (LVarList *)calloc(1, sizeof(LVarList));
   vl->var = var;
@@ -139,6 +150,7 @@ static LVar *new_lvar(char *name)
 }
 
 static Function *function();
+static Node *declaration();
 static Node *stmt();
 static Node *stmt2();
 static Node *expr();
@@ -149,12 +161,6 @@ static Node *add();
 static Node *mul();
 static Node *unary();
 static Node *primary();
-
-static Node *read_expr_stmt()
-{
-  Token *tok = g_token;
-  return new_unary(ND_EXPR_STMT, expr(), tok);
-}
 
 // program = function*
 Function *program()
@@ -171,32 +177,53 @@ Function *program()
   return head.next;
 }
 
+// basetype = "int" "*"*
+static Type *basetype()
+{
+  expect("int");
+  Type *ty = &g_int_type;
+  while (consume("*"))
+  {
+    ty = pointer_to(ty);
+  }
+  return ty;
+}
+
+static LVarList *read_func_param()
+{
+  LVarList *vl = (LVarList *)calloc(1, sizeof(LVarList));
+  Type *ty = basetype();
+  vl->var = new_lvar(expect_ident(), ty);
+  return vl;
+}
+
 static LVarList *read_func_params()
 {
   if (consume(")"))
     return NULL;
 
-  LVarList *head = (LVarList *)calloc(1, sizeof(LVarList));
-  head->var = new_lvar(expect_ident());
+  LVarList *head = read_func_param();
   LVarList *cur = head;
 
   while (!consume(")"))
   {
     expect(",");
-    cur->next = (LVarList *)calloc(1, sizeof(LVarList));
-    cur->next->var = new_lvar(expect_ident());
+    cur->next = read_func_param();
     cur = cur->next;
   }
 
   return head;
 }
 
-// function = ident "(" params? ")" "{" stmt* "}"
-// params = ident ("," ident)*
+// function = basetype ident "(" params? ")" "{" stmt* "}"
+// params = param ("," param)*
+// param = basetype ident
 static Function *function()
 {
   locals = NULL;
+
   Function *fn = (Function *)calloc(1, sizeof(Function));
+  basetype();
   fn->name = expect_ident();
   expect("(");
   fn->params = read_func_params();
@@ -215,6 +242,30 @@ static Function *function()
   return fn;
 }
 
+// declaration = basetype ident ("=" expr)? ";"
+static Node *declaration()
+{
+  Token *tok = g_token;
+  Type *ty = basetype();
+  LVar *var = new_lvar(expect_ident(), ty);
+
+  if (consume(";"))
+    return new_node(ND_NULL, tok);
+
+  expect("=");
+  Node *lhs = new_var_node(var, tok);
+  Node *rhs = expr();
+  expect(";");
+  Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
+  return new_unary(ND_EXPR_STMT, node, tok);
+}
+
+static Node *read_expr_stmt()
+{
+  Token *tok = g_token;
+  return new_unary(ND_EXPR_STMT, expr(), tok);
+}
+
 static Node *stmt()
 {
   Node *node = stmt2();
@@ -227,6 +278,7 @@ static Node *stmt()
 //      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "{" stmt* "}"
+//      | declaration
 //      | expr ";"
 static Node *stmt2()
 {
@@ -305,6 +357,9 @@ static Node *stmt2()
     node->body = head.next;
     return node;
   }
+
+  if (peek("int"))
+    return declaration();
 
   Node *node = read_expr_stmt();
   expect(";");
@@ -477,7 +532,7 @@ static Node *primary()
     return node;
   }
 
-  // そうでなければ数値か変数か関数のはず
+  // そうでなければ数値か変数か関数呼び出しのはず
   Token *tok;
   if (tok = consume_ident())
   {
@@ -494,7 +549,8 @@ static Node *primary()
     LVar *var = find_var(tok);
     if (!var)
     {
-      var = new_lvar(strndup(tok->str, tok->len));
+      // 未定義の変数を使用しようとした場合はエラー
+      error_tok(tok, "undefined variable");
     }
     return new_var_node(var, tok);
   }

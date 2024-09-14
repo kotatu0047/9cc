@@ -18,7 +18,8 @@
         "stdexcept": "c",
         "streambuf": "c",
         "functional": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "sstream": "c"
     },
     "[makefile]": {
         "editor.insertSpaces": false

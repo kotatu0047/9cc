@@ -1,7 +1,5 @@
 #include "9cc.h"
 
-Type int_type = {TY_INT, NULL};
-
 bool is_integer(Type *ty)
 {
     return ty->kind == TY_INT;
@@ -44,15 +42,17 @@ void add_type(Node *node)
     case ND_NE:
     case ND_LT:
     case ND_LE:
-    case ND_LVAR:
     case ND_FUNCALL:
     case ND_NUM:
-        node->ty = &int_type;
+        node->ty = &g_int_type;
         return;
     case ND_PTR_ADD:
     case ND_PTR_SUB:
     case ND_ASSIGN:
         node->ty = node->lhs->ty;
+        return;
+    case ND_LVAR:
+        node->ty = node->var->ty;
         return;
     case ND_ADDR:
         node->ty = pointer_to(node->lhs->ty);
@@ -64,8 +64,8 @@ void add_type(Node *node)
         }
         else
         {
-            node->ty = &int_type;
-            // error_tok(node->tok, "invalid pointer dereference");
+            // node->ty = &g_int_type;
+            error_tok(node->tok, "invalid pointer dereference");
         }
         return;
     }
