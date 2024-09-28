@@ -7,7 +7,7 @@ static char *currnet_funcname;
 static void gen(Node *node);
 
 // スタックフレームの変数領域のアドレスを読み込み、スタックの先頭に配置する
-static void gen_lval(Node *node)
+static void gen_addr(Node *node)
 {
   switch (node->kind)
   {
@@ -23,6 +23,13 @@ static void gen_lval(Node *node)
   }
 
   error_tok(node->tok, "not an lvalue");
+}
+
+static void gen_lval(Node *node)
+{
+  if (node->ty->kind == TY_ARRAY)
+    error_tok(node->tok, "not an lvalue");
+  gen_addr(node);
 }
 
 static void load(void)
@@ -54,8 +61,11 @@ static void gen(Node *node)
     printf("  add rsp, 8\n"); // 代入が完了したら、スタックの先頭にある計算結果を捨てる
     return;
   case ND_LVAR:
-    gen_lval(node);
-    load();
+    gen_addr(node);
+    if (node->ty->kind != TY_ARRAY)
+    {
+      load();
+    }
     return;
   case ND_ASSIGN:
     gen_lval(node->lhs);
@@ -63,11 +73,14 @@ static void gen(Node *node)
     store();
     return;
   case ND_ADDR:
-    gen_lval(node->lhs);
+    gen_addr(node->lhs);
     return;
   case ND_DEREF:
     gen(node->lhs);
-    load();
+    if (node->ty->kind != TY_ARRAY)
+    {
+      load();
+    }
     return;
   case ND_IF:
   {
@@ -187,20 +200,20 @@ static void gen(Node *node)
     printf("  add rax, rdi\n");
     break;
   case ND_PTR_ADD:
-    printf("  imul rdi, 8\n");
+    printf("  imul rdi, %d\n", node->ty->base->size);
     printf("  add rax, rdi\n");
     break;
   case ND_SUB:
     printf("  sub rax, rdi\n");
     break;
   case ND_PTR_SUB:
-    printf("  imul rdi, 8\n");
+    printf("  imul rdi, %d\n", node->ty->base->size);
     printf("  sub rax, rdi\n");
     break;
   case ND_PTR_DIFF:
     printf("  sub rax, rdi\n");
     printf("  cqo\n");
-    printf("  mov rdi, 8\n");
+    printf("  imul rdi, %d\n", node->lhs->ty->base->size);
     printf("  idiv rdi\n");
     break;
   case ND_MUL:

@@ -189,11 +189,25 @@ static Type *basetype()
   return ty;
 }
 
+// type = 配列の型を読み込む 配列の合計サイズも計算する
+static Type *read_type_suffix(Type *base)
+{
+  if (!consume("["))
+    return base;
+
+  int size = expect_number();
+  expect("]");
+  base = read_type_suffix(base);
+  return array_of(base, size);
+}
+
 static LVarList *read_func_param()
 {
-  LVarList *vl = (LVarList *)calloc(1, sizeof(LVarList));
   Type *ty = basetype();
-  vl->var = new_lvar(expect_ident(), ty);
+  char *name = expect_ident();
+  ty = read_type_suffix(ty); // 配列の型を読み込む
+  LVarList *vl = (LVarList *)calloc(1, sizeof(LVarList));
+  vl->var = new_lvar(name, ty);
   return vl;
 }
 
@@ -247,7 +261,9 @@ static Node *declaration()
 {
   Token *tok = g_token;
   Type *ty = basetype();
-  LVar *var = new_lvar(expect_ident(), ty);
+  char *name = expect_ident();
+  ty = read_type_suffix(ty);
+  LVar *var = new_lvar(name, ty);
 
   if (consume(";"))
     return new_node(ND_NULL, tok);

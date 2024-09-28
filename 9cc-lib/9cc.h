@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -127,19 +128,24 @@ void error_tok(Token *tok, char *fmt, ...);
 typedef enum
 {
   TY_INT,
-  TY_PTR
+  TY_PTR,
+  TY_ARRAY,
 } TypeKind;
 
 struct Type
 {
   TypeKind kind;
+  int size; // sizeof() value
   Type *base;
+  int array_len; // 配列の長さ
 };
 
 //tyが整数型かどうかを返す
 bool is_integer(Type *ty);
 // ポインター型に変換する
 Type *pointer_to(Type *base);
+// 配列型に変換する
+Type *array_of(Type *base, int size);
 // nodeとnode以下の全子要素に型を付与する
 void add_type(Node *node);
 //----------------------------------------

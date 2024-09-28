@@ -6,7 +6,7 @@ char *g_user_input = NULL;
 // 現在着目しているトークン
 Token *g_token = NULL;
 // intの型
-Type g_int_type = {TY_INT, NULL};
+Type g_int_type = {TY_INT, 8};
 //----------------------------------------
 
 int main(int argc, char **argv)
@@ -30,8 +30,9 @@ int main(int argc, char **argv)
     int offset = 0;
     for (LVarList *vl = fn->locals; vl; vl = vl->next)
     {
-      offset += 8;
-      vl->var->offset = offset;
+      LVar *var = vl->var;
+      offset += var->ty->size;
+      var->offset = offset;
     }
     fn->stack_size = offset;
   }

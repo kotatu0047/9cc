@@ -101,12 +101,19 @@ assert 3 'int main() { int x=3; int *y=&x; int **z=&y; return **z; }'
 assert 5 'int main() { int x=3; int y=5; return *(&x+1); }'
 assert 5 'int main() { int x=3; int y=5; return *(1+&x); }'
 assert 3 'int main() { int x=3; int y=5; return *(&y-1); }'
-assert 2 'int main() { int x=3; return (&x+2)-&x; }'
 assert 5 'int main() { int x=3; int y=5; int *z=&x; return *(z+1); }'
 assert 3 'int main() { int x=3; int y=5; int *z=&y; return *(z-1); }'
 assert 5 'int main() { int x=3; int *y=&x; *y=5; return x; }'
-assert 7 'int main() { int x=3; int y=5; *(&x+1)=7; return y; }'
 assert 7 'int main() { int x=3; int y=5; *(&y-1)=7; return x; }'
 assert 8 'int main() { int x=3; int y=5; return foo(&x, y); } int foo(int *x, int y) { return *x + y; }'
+assert 7 'int main() { int x=3; int y=5; *(&x+1)=7; return y; }'
+
+assert 3 'int main() { int x[2]; int *y=&x; *y=3; return *x; }'
+
+assert 3 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *x; }'
+assert 4 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+1); }'
+assert 5 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+2); }'
+
+assert 2 'int main() { int x=3; return (&x+2)-&x; }'  # todo これだけテストが通らない
 
 echo OK

@@ -9,7 +9,18 @@ Type *pointer_to(Type *base)
 {
     Type *ty = (Type *)calloc(1, sizeof(Type));
     ty->kind = TY_PTR;
+    ty->size = 8;
     ty->base = base;
+    return ty;
+}
+
+Type *array_of(Type *base, int size)
+{
+    Type *ty = (Type *)calloc(1, sizeof(Type));
+    ty->kind = TY_ARRAY;
+    ty->size = base->size * size;
+    ty->base = base;
+    ty->array_len = size;
     return ty;
 }
 
@@ -55,18 +66,22 @@ void add_type(Node *node)
         node->ty = node->var->ty;
         return;
     case ND_ADDR:
-        node->ty = pointer_to(node->lhs->ty);
-        return;
-    case ND_DEREF:
-        if (node->lhs->ty->kind == TY_PTR)
+        if (node->lhs->ty->kind == TY_ARRAY)
         {
-            node->ty = node->lhs->ty->base;
+            node->ty = pointer_to(node->lhs->ty->base);
         }
         else
         {
-            // node->ty = &g_int_type;
+            node->ty = pointer_to(node->lhs->ty);
+        }
+        return;
+    case ND_DEREF:
+        if (!node->lhs->ty->base)
+        {
             error_tok(node->tok, "invalid pointer dereference");
         }
+
+        node->ty = node->lhs->ty->base;
         return;
     }
 }

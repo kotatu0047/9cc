@@ -32,7 +32,7 @@ static bool is_alnum(char c)
 static char *starts_with_reserved(char *p)
 {
   // Keywords
-  static char *kw[] = {"return", "if", "else", "while", "for" , "int"};
+  static char *kw[] = {"return", "if", "else", "while", "for", "int"};
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
   {
     int len = strlen(kw[i]);
@@ -93,7 +93,7 @@ Token *tokenize(char *p)
 
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
         *p == ')' || *p == '<' || *p == '>' || *p == ';' || *p == '=' ||
-        *p == '{' || *p == '}' || *p == ',' || *p == '&')
+        *p == '{' || *p == '}' || *p == ',' || *p == '&' || *p == '[' || *p == ']')
     {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
